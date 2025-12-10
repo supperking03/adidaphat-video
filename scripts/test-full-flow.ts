@@ -1,13 +1,13 @@
 /**
  * Test full flow từ câu hỏi của user ra video cuối
- * 
+ *
  * Flow:
  * 1. Gen content từ câu hỏi của user (OpenAI)
  * 2. Gen question audio (Minimax TTS, Vietnamese_female_4_v1) + swish
  * 3. Gen answer audio (Minimax TTS, female-shaonv)
  * 4. Nối 2 audio thành final
  * 5. Process video với final audio và wipeup transition
- * 
+ *
  * Run: tsx scripts/test-full-flow.ts
  */
 
@@ -28,7 +28,9 @@ function loadEnv() {
   const envPath = path.join(process.cwd(), ".env.local");
   try {
     if (!fsSync.existsSync(envPath)) {
-      console.warn("⚠️ .env.local file not found (this is okay if using system env vars)");
+      console.warn(
+        "⚠️ .env.local file not found (this is okay if using system env vars)"
+      );
       return;
     }
     const envContent = fsSync.readFileSync(envPath, "utf-8");
@@ -45,7 +47,9 @@ function loadEnv() {
       }
     }
   } catch {
-    console.warn("⚠️ Could not load .env.local file (this is okay if using system env vars)");
+    console.warn(
+      "⚠️ Could not load .env.local file (this is okay if using system env vars)"
+    );
   }
 }
 
@@ -54,7 +58,7 @@ async function testFullFlow() {
 
   console.log("🧪 Testing Full Flow từ câu hỏi của user ra video cuối\n");
 
-  const videosDir = path.join(process.cwd(), "public", "videos");
+  const videosDir = path.join(process.cwd(), "videos");
   await fs.mkdir(videosDir, { recursive: true });
   const videoPath = path.join(process.cwd(), "public", "auto.MOV");
 
@@ -79,7 +83,9 @@ async function testFullFlow() {
 
   try {
     // Step 1: Get user question
-    const userQuestion = process.env.TIKTOK_DAILY_QUESTION || "Làm sao để tìm được sự bình an trong tâm hồn?";
+    const userQuestion =
+      process.env.TIKTOK_DAILY_QUESTION ||
+      "Làm sao để tìm được sự bình an trong tâm hồn?";
     console.log(`❓ Step 1: User question: "${userQuestion}"\n`);
 
     // Step 2: Generate content from OpenAI
@@ -88,55 +94,88 @@ async function testFullFlow() {
     console.log(`✅ Content generated: ${content.substring(0, 100)}...\n`);
 
     // Step 3: Generate question audio (Minimax TTS + swish)
-    console.log(`🎤 Step 3: Generating question audio with Minimax TTS (Vietnamese_female_4_v1) and swish sound...`);
+    console.log(
+      `🎤 Step 3: Generating question audio with Minimax TTS (Vietnamese_female_4_v1) and swish sound...`
+    );
     const questionAudioBuffer = await generateQuestionAudio(userQuestion);
-    console.log(`✅ Question audio with swish generated: ${questionAudioBuffer.length} bytes\n`);
+    console.log(
+      `✅ Question audio with swish generated: ${questionAudioBuffer.length} bytes\n`
+    );
 
     // Save question audio for inspection
-    const questionAudioPath = path.join(videosDir, `test-question-${Date.now()}.mp3`);
+    const questionAudioPath = path.join(
+      videosDir,
+      `test-question-${Date.now()}.mp3`
+    );
     await fs.writeFile(questionAudioPath, questionAudioBuffer);
     console.log(`💾 Question audio saved to: ${questionAudioPath}\n`);
 
     // Step 4: Generate answer audio from Minimax
-    console.log(`🔊 Step 4: Generating answer audio with Minimax TTS (female-shaonv)...`);
+    console.log(
+      `🔊 Step 4: Generating answer audio with Minimax TTS (female-shaonv)...`
+    );
     const answerAudioBuffer = await generateAudio(content);
-    console.log(`✅ Answer audio generated: ${answerAudioBuffer.length} bytes\n`);
+    console.log(
+      `✅ Answer audio generated: ${answerAudioBuffer.length} bytes\n`
+    );
 
     // Save answer audio for inspection
-    const answerAudioPath = path.join(videosDir, `test-answer-${Date.now()}.mp3`);
+    const answerAudioPath = path.join(
+      videosDir,
+      `test-answer-${Date.now()}.mp3`
+    );
     await fs.writeFile(answerAudioPath, answerAudioBuffer);
     console.log(`💾 Answer audio saved to: ${answerAudioPath}\n`);
 
     // Step 5: Concatenate question + answer audio
     console.log(`🔗 Step 5: Concatenating question and answer audio...`);
-    const finalAudioBuffer = await concatenateAudioBuffers(questionAudioBuffer, answerAudioBuffer);
+    const finalAudioBuffer = await concatenateAudioBuffers(
+      questionAudioBuffer,
+      answerAudioBuffer
+    );
     console.log(`✅ Final audio created: ${finalAudioBuffer.length} bytes\n`);
 
     // Save final audio for inspection
-    const finalAudioPath = path.join(videosDir, `test-final-audio-${Date.now()}.mp3`);
+    const finalAudioPath = path.join(
+      videosDir,
+      `test-final-audio-${Date.now()}.mp3`
+    );
     await fs.writeFile(finalAudioPath, finalAudioBuffer);
     console.log(`💾 Final audio saved to: ${finalAudioPath}\n`);
 
     // Step 6: Get question audio duration (for wipeup transition)
-    console.log(`📊 Step 6: Getting question audio duration for wipeup transition...`);
+    console.log(
+      `📊 Step 6: Getting question audio duration for wipeup transition...`
+    );
     const { exec } = await import("child_process");
     const { promisify } = await import("util");
     const execAsync = promisify(exec);
-    
+
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "audio-duration-"));
     const tempQuestionPath = path.join(tempDir, "question.mp3");
-    
+
     let questionAudioDuration: number | undefined;
     try {
       await fs.writeFile(tempQuestionPath, questionAudioBuffer);
-      const ffprobePath = process.env.FFPROBE_PATH || process.env.FFMPEG_PATH?.replace("ffmpeg", "ffprobe") || "ffprobe";
+      const ffprobePath =
+        process.env.FFPROBE_PATH ||
+        process.env.FFMPEG_PATH?.replace("ffmpeg", "ffprobe") ||
+        "ffprobe";
       const { stdout } = await execAsync(
         `${ffprobePath} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${tempQuestionPath}"`
       );
       questionAudioDuration = parseFloat(stdout.trim());
-      console.log(`✅ Question audio duration: ${questionAudioDuration.toFixed(2)} seconds\n`);
+      console.log(
+        `✅ Question audio duration: ${questionAudioDuration.toFixed(
+          2
+        )} seconds\n`
+      );
     } catch (error) {
-      console.warn(`⚠️ Could not get question audio duration: ${error instanceof Error ? error.message : String(error)}`);
+      console.warn(
+        `⚠️ Could not get question audio duration: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       console.warn(`   Wipeup transition will be skipped\n`);
     } finally {
       try {
@@ -152,7 +191,10 @@ async function testFullFlow() {
 
     try {
       const timestamp = Date.now();
-      const outputPath = path.join(videosDir, `test-output-final-${timestamp}.mp4`);
+      const outputPath = path.join(
+        videosDir,
+        `test-output-final-${timestamp}.mp4`
+      );
 
       const processedVideo = await processVideo(
         videoPath,
@@ -175,18 +217,34 @@ async function testFullFlow() {
       console.log(`- Final audio: ${finalAudioPath}`);
       console.log(`- Video: ${outputPath}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       if (errorMessage.includes("Vercel serverless")) {
-        console.log("⏭️ Video processing skipped (Vercel environment detected)");
-        console.log("   This is expected - video processing needs external service on Vercel\n");
-      } else if (errorMessage.includes("ffmpeg") || errorMessage.includes("ffprobe")) {
-        console.log("⚠️ Video processing failed - ffmpeg not found or error occurred:");
+        console.log(
+          "⏭️ Video processing skipped (Vercel environment detected)"
+        );
+        console.log(
+          "   This is expected - video processing needs external service on Vercel\n"
+        );
+      } else if (
+        errorMessage.includes("ffmpeg") ||
+        errorMessage.includes("ffprobe")
+      ) {
+        console.log(
+          "⚠️ Video processing failed - ffmpeg not found or error occurred:"
+        );
         console.log(`   ${errorMessage}`);
         console.log("\n💡 To fix:");
-        console.log("   1. Install ffmpeg: brew install ffmpeg (macOS) or apt-get install ffmpeg (Linux)");
-        console.log("   2. Or set FFMPEG_PATH env var to point to ffmpeg binary");
-        console.log("   3. Or use external video processing service for production\n");
+        console.log(
+          "   1. Install ffmpeg: brew install ffmpeg (macOS) or apt-get install ffmpeg (Linux)"
+        );
+        console.log(
+          "   2. Or set FFMPEG_PATH env var to point to ffmpeg binary"
+        );
+        console.log(
+          "   3. Or use external video processing service for production\n"
+        );
       } else {
         console.log("❌ Video processing failed:");
         console.log(`   ${errorMessage}\n`);
@@ -200,4 +258,3 @@ async function testFullFlow() {
 }
 
 void testFullFlow();
-

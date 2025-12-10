@@ -42,4 +42,4 @@ yarn-error.log*
 next-env.d.ts
 
 # generated videos and media files
-/public/videos/
+/videos/

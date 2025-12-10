@@ -1,0 +1,29 @@
+{
+  "name": "adidaphat-video",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TikTok video generation automation service - Tách từ adidaphat-website",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test-tiktok-automation": "tsx scripts/test-tiktok-automation.ts",
+    "test-video-processing": "tsx scripts/test-video-processing.ts",
+    "test-full-flow": "tsx scripts/test-full-flow.ts"
+  },
+  "dependencies": {
+    "next": "^16.0.7",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16.0.7",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}

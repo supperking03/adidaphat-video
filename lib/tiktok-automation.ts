@@ -62,7 +62,7 @@ LƯU Ý: Sửa lỗi chính tả nếu có, nhưng KHÔNG thay đổi phong các
 
 /**
  * Generate content từ OpenAI - thiền sư trả lời câu hỏi của user
- * Tối ưu cho TikTok short: câu trả lời ngắn gọn, tối đa 1 phút (khoảng 150-180 từ)
+ * Tối ưu cho TikTok short: câu trả lời ngắn gọn, tối đa 1 phút 30 giây (khoảng 225-270 từ)
  */
 export async function generateContent(userQuestion: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -70,18 +70,18 @@ export async function generateContent(userQuestion: string): Promise<string> {
     throw new Error("Missing OPENAI_API_KEY environment variable");
   }
 
-  // System prompt riêng cho TikTok - yêu cầu ngắn gọn, tối đa 1 phút
+  // System prompt riêng cho TikTok - yêu cầu ngắn gọn, tối đa 1 phút 30 giây
   const TIKTOK_SYSTEM_PROMPT = `${SYSTEM_PROMPT}
 
 QUAN TRỌNG CHO TIKTOK SHORT:
-- Câu trả lời PHẢI NGẮN GỌN, tối đa 1 phút khi đọc (khoảng 150-180 từ, tương đương 400-500 tokens).
+- Câu trả lời PHẢI NGẮN GỌN, tối đa 1 phút 30 giây khi đọc (khoảng 225-270 từ, tương đương 600-750 tokens).
 - Giữ chất lượng: vẫn sâu sắc, từ bi, nhưng cô đọng và súc tích.
 - Tập trung vào 1-2 ý chính, không lan man.
 - Phần mở: 1-2 câu tiếp nhận câu hỏi.
-- Phần thân: 2-4 câu chia sẻ suy nghĩ, ẩn dụ ngắn gọn.
+- Phần thân: 3-5 câu chia sẻ suy nghĩ, ẩn dụ ngắn gọn.
 - Phần kết: 1 câu hỏi gợi mở hoặc lời nhắn ngắn.
-- Tổng cộng: 4-7 câu, không quá 180 từ.
-- KHÔNG được dài hơn 1 phút khi đọc.`;
+- Tổng cộng: 5-9 câu, không quá 270 từ.
+- KHÔNG được dài hơn 1 phút 30 giây khi đọc.`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -95,7 +95,7 @@ QUAN TRỌNG CHO TIKTOK SHORT:
         { role: "system", content: TIKTOK_SYSTEM_PROMPT },
         { role: "user", content: userQuestion },
       ],
-      max_completion_tokens: 500, // Giới hạn tối đa 500 tokens (~180 từ) để đảm bảo tối đa 1 phút
+      max_completion_tokens: 750, // Giới hạn tối đa 750 tokens (~270 từ, ~1 phút 30 giây) để đảm bảo câu trả lời vừa đủ, phù hợp TikTok short
       temperature: 0.7,
       stream: false, // Không cần streaming cho automation
     }),

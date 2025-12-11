@@ -2,11 +2,12 @@
  * Test full flow từ câu hỏi của user ra video cuối
  *
  * Flow:
- * 1. Gen content từ câu hỏi của user (OpenAI)
- * 2. Gen question audio (Minimax TTS, Vietnamese_female_4_v1) + swish
- * 3. Gen answer audio (Minimax TTS, female-shaonv)
- * 4. Nối 2 audio thành final
- * 5. Process video với final audio và wipeup transition
+ * 1. Gen question từ OpenAI (viral, gây tranh cãi, rage bait)
+ * 2. Gen content từ câu hỏi của user (OpenAI)
+ * 3. Gen question audio (Minimax TTS, Vietnamese_female_4_v1) + swish
+ * 4. Gen answer audio (Minimax TTS, female-shaonv)
+ * 5. Nối 2 audio thành final
+ * 6. Process video với final audio và wipeup transition
  *
  * Run: tsx scripts/test-full-flow.ts
  */
@@ -16,6 +17,7 @@ import {
   generateAudio,
   generateQuestionAudio,
   concatenateAudioBuffers,
+  generateQuestion,
 } from "../lib/tiktok-automation";
 import { processVideo } from "../lib/video-processor";
 import fs from "fs/promises";
@@ -82,11 +84,10 @@ async function testFullFlow() {
   }
 
   try {
-    // Step 1: Get user question
-    const userQuestion =
-      process.env.TIKTOK_DAILY_QUESTION ||
-      "Làm sao để tìm được sự bình an trong tâm hồn?";
-    console.log(`❓ Step 1: User question: "${userQuestion}"\n`);
+    // Step 1: Generate user question from OpenAI
+    console.log(`❓ Step 1: Generating question from OpenAI...`);
+    const userQuestion = await generateQuestion();
+    console.log(`✅ Question generated: "${userQuestion}"\n`);
 
     // Step 2: Generate content from OpenAI
     console.log(`📝 Step 2: Generating content from OpenAI...`);

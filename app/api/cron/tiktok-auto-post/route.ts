@@ -5,6 +5,7 @@ import {
   generateQuestionAudio,
   concatenateAudioBuffers,
   postToTikTok,
+  generateQuestion,
 } from "@/lib/tiktok-automation";
 import { processVideo } from "@/lib/video-processor";
 import path from "path";
@@ -47,9 +48,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Step 1: Get user question (from env or use random question)
-    const userQuestion = process.env.TIKTOK_DAILY_QUESTION || getRandomQuestion();
-    console.log(`📝 Generating content for question: ${userQuestion}`);
+    // Step 1: Generate user question from OpenAI
+    console.log(`❓ Generating question from OpenAI...`);
+    const userQuestion = await generateQuestion();
+    console.log(`✅ Question generated: "${userQuestion}"`);
+    console.log(`📝 Generating content for question...`);
 
     // Step 2: Generate content from OpenAI (thiền sư trả lời câu hỏi)
     const content = await generateContent(userQuestion);

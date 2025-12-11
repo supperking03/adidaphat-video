@@ -70,18 +70,23 @@ export async function generateContent(userQuestion: string): Promise<string> {
     throw new Error("Missing OPENAI_API_KEY environment variable");
   }
 
-  // System prompt riêng cho TikTok - yêu cầu ngắn gọn, tối đa 1 phút 30 giây
+  // System prompt riêng cho TikTok - yêu cầu đủ dài, khoảng 1 phút 30 giây
   const TIKTOK_SYSTEM_PROMPT = `${SYSTEM_PROMPT}
 
 QUAN TRỌNG CHO TIKTOK SHORT:
-- Câu trả lời PHẢI NGẮN GỌN, tối đa 1 phút 30 giây khi đọc (khoảng 225-270 từ, tương đương 600-750 tokens).
-- Giữ chất lượng: vẫn sâu sắc, từ bi, nhưng cô đọng và súc tích.
-- Tập trung vào 1-2 ý chính, không lan man.
-- Phần mở: 1-2 câu tiếp nhận câu hỏi.
-- Phần thân: 3-5 câu chia sẻ suy nghĩ, ẩn dụ ngắn gọn.
-- Phần kết: 1 câu hỏi gợi mở hoặc lời nhắn ngắn.
-- Tổng cộng: 5-9 câu, không quá 270 từ.
-- KHÔNG được dài hơn 1 phút 30 giây khi đọc.`;
+- Câu trả lời PHẢI ĐỦ DÀI, khoảng 1 phút 30 giây khi đọc (khoảng 250-300 từ, tương đương 700-900 tokens).
+- KHÔNG được quá ngắn. Phải đảm bảo đủ nội dung để đọc trong 1 phút 30 giây.
+- Giữ chất lượng: vẫn sâu sắc, từ bi, nhưng đầy đủ và có chiều sâu.
+
+CẤU TRÚC CÂU TRẢ LỜI:
+- KHÔNG lặp lại câu hỏi. KHÔNG confirm hay tóm tắt câu hỏi ở phần đầu.
+- Đi thẳng vào nội dung trả lời, không dài dòng mở đầu.
+- Phần mở: Bỏ qua hoặc chỉ 1 câu ngắn gọn nếu cần, KHÔNG lặp lại câu hỏi.
+- Phần thân: 8-12 câu chia sẻ suy nghĩ, ẩn dụ, ví dụ cụ thể, giải thích sâu hơn - đây là phần chính.
+- Phần kết: 1-2 câu hỏi gợi mở hoặc lời nhắn nhẹ nhàng.
+- Tổng cộng: 10-15 câu, khoảng 250-300 từ.
+- Đảm bảo câu trả lời ĐỦ DÀI để đọc trong 1 phút 30 giây, không được ngắn hơn.
+- Tập trung vào phần thân, không lãng phí thời gian ở phần mở đầu.`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -90,12 +95,12 @@ QUAN TRỌNG CHO TIKTOK SHORT:
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "gpt-5.1",
+      model: "gpt-4o", // Sử dụng gpt-4o hoặc gpt-3.5-turbo
       messages: [
         { role: "system", content: TIKTOK_SYSTEM_PROMPT },
         { role: "user", content: userQuestion },
       ],
-      max_completion_tokens: 750, // Giới hạn tối đa 750 tokens (~270 từ, ~1 phút 30 giây) để đảm bảo câu trả lời vừa đủ, phù hợp TikTok short
+      max_completion_tokens: 900, // Giới hạn tối đa 900 tokens (~300 từ, ~1 phút 30 giây) để đảm bảo câu trả lời đủ dài
       temperature: 0.7,
       stream: false, // Không cần streaming cho automation
     }),
@@ -116,6 +121,94 @@ QUAN TRỌNG CHO TIKTOK SHORT:
   }
 
   return content;
+}
+
+/**
+ * Generate question từ OpenAI - tạo câu hỏi viral, gây tranh cãi, rage bait
+ * Đảm bảo mỗi lần gen ra câu hỏi khác nhau, tránh trùng lặp
+ */
+export async function generateQuestion(): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing OPENAI_API_KEY environment variable");
+  }
+
+  // System prompt để gen câu hỏi viral, gây tranh cãi
+  const QUESTION_GENERATION_PROMPT = `Bạn là một người dùng mạng xã hội đang đặt câu hỏi cho một thầy/người hướng dẫn tâm linh.
+
+NHIỆM VỤ:
+Tạo CHỈ MỘT CÂU HỎI DUY NHẤT, NGẮN GỌN (tối đa 30 từ, khoảng 1 dòng) với các đặc điểm:
+- Đóng vai một bạn user thật, xưng hô tự nhiên (con, em, mình...)
+- Câu hỏi phải GIẬT GÂN, GÂY CẤN, dễ viral trên TikTok
+- Có tính GÂY TRANH CÃI, RAGE BAIT - khiến người xem muốn bình luận ngay
+- Chủ đề: tâm linh, cuộc sống, mối quan hệ, công việc, tiền bạc, hạnh phúc, stress, lo âu, đạo đức...
+- Phong cách: thẳng thắn, có thể hơi cực đoan, đặt câu hỏi về những vấn đề nhạy cảm, controversial
+- Câu hỏi phải HÚT, khiến người xem phải dừng lại xem câu trả lời
+
+QUAN TRỌNG:
+- CHỈ 1 CÂU HỎI, không được dài dòng
+- Mỗi câu hỏi PHẢI KHÁC NHAU, không được trùng lặp
+- Câu hỏi phải tự nhiên, như một người thật đang hỏi
+- Kết thúc bằng dấu chấm hỏi (?)
+- KHÔNG dùng gạch đầu dòng, chỉ trả về câu hỏi thuần túy
+
+VÍ DỤ CÂU HỎI TỐT (NGẮN, GIẬT GÂN):
+- "Thầy ơi, tại sao người tốt lại hay bị lợi dụng?"
+- "Con thấy mình thất bại quá, thầy có thể giúp con không?"
+- "Tại sao nhiều người giàu có nhưng vẫn không hạnh phúc?"
+- "Em luôn giúp đỡ người khác nhưng lại bị phản bội, em nên làm sao?"
+- "Thầy ơi, yêu bản thân có phải chỉ là đặc quyền của người có tiền không?"
+- "Tại sao người thành công thường nói 'theo đam mê' nhưng thực tế họ làm vì tiền?"
+
+CHỈ TRẢ VỀ CÂU HỎI, KHÔNG CÓ GIẢI THÍCH HAY MỞ ĐẦU GÌ THÊM.`;
+
+  // Thêm timestamp và random seed để đảm bảo tính đa dạng
+  const timestamp = Date.now();
+  const randomSeed = Math.floor(Math.random() * 10000);
+  const userPrompt = `Hãy tạo một câu hỏi mới, độc đáo, chưa từng thấy trước đây. 
+Timestamp: ${timestamp}
+Random seed: ${randomSeed}
+Đảm bảo câu hỏi này hoàn toàn khác với mọi câu hỏi đã tạo trước đó.`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o", // Sử dụng gpt-4o hoặc gpt-3.5-turbo
+      messages: [
+        { role: "system", content: QUESTION_GENERATION_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      max_completion_tokens: 100, // Giới hạn để câu hỏi ngắn gọn, chỉ 1 câu
+      temperature: 1.2, // Temperature cao để tăng tính đa dạng và tránh trùng lặp
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI API error: ${errorText}`);
+  }
+
+  const data = (await response.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+
+  const question = data.choices?.[0]?.message?.content?.trim();
+  if (!question) {
+    throw new Error("No question generated from OpenAI");
+  }
+
+  // Clean up: loại bỏ dấu ngoặc kép nếu có, và đảm bảo kết thúc bằng dấu hỏi
+  let cleanedQuestion = question.replace(/^["']|["']$/g, "").trim();
+  if (!cleanedQuestion.endsWith("?")) {
+    cleanedQuestion += "?";
+  }
+
+  return cleanedQuestion;
 }
 
 /**

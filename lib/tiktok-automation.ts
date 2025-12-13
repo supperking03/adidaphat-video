@@ -246,9 +246,10 @@ export async function generateQuestionAudio(question: string): Promise<Buffer> {
       language_boost: "Vietnamese",
       voice_setting: {
         voice_id: voiceId,
-        speed: 1,
-        vol: 1,
-        pitch: 0,
+        speed: 0.4, // Tốc độ: 0.5 - 2.0 (giảm xuống 0.4 để nói chậm hơn, tự nhiên hơn)
+        vol: 1, // Volume: 0.5 - 2.0
+        pitch: -1, // Cao độ: -12 đến +12 semitone (giảm xuống -1 để giọng trầm hơn, truyền cảm hơn)
+        emotion: "sad", // Emotion: "neutral", "happy", "sad", "angry", "fearful" - dùng "sad" để nhẹ nhàng, tĩnh lặng, truyền cảm hơn
       },
       audio_setting: {
         sample_rate: 32000,
@@ -433,9 +434,10 @@ export async function generateAudio(text: string): Promise<Buffer> {
       language_boost: "Vietnamese",
       voice_setting: {
         voice_id: voiceId,
-        speed: 1,
-        vol: 1,
-        pitch: 0,
+        speed: 0.4, // Tốc độ: 0.5 - 2.0 (giảm xuống 0.4 để nói chậm hơn, tự nhiên hơn)
+        vol: 1, // Volume: 0.5 - 2.0
+        pitch: -1, // Cao độ: -12 đến +12 semitone (giảm xuống -1 để giọng trầm hơn, truyền cảm hơn)
+        emotion: "sad", // Emotion: "neutral", "happy", "sad", "angry", "fearful" - dùng "sad" để nhẹ nhàng, tĩnh lặng, truyền cảm hơn
       },
       audio_setting: {
         sample_rate: 32000,

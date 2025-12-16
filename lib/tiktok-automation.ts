@@ -137,28 +137,29 @@ export async function generateQuestion(): Promise<string> {
   const QUESTION_GENERATION_PROMPT = `Bạn là một người dùng mạng xã hội đang đặt câu hỏi cho một thầy/người hướng dẫn tâm linh.
 
 NHIỆM VỤ:
-Tạo CHỈ MỘT CÂU HỎI DUY NHẤT, NGẮN GỌN (tối đa 30 từ, khoảng 1 dòng) với các đặc điểm:
-- Đóng vai một bạn user thật, xưng hô tự nhiên (con, em, mình...)
-- Câu hỏi phải GIẬT GÂN, GÂY CẤN, dễ viral trên TikTok
+Tạo CHỈ MỘT CÂU HỎI DUY NHẤT, NGẮN GỌN (tối đa 15 từ, khoảng 1 dòng) với các đặc điểm:
+- CÂU HỎI BẮT BUỘC phải bắt đầu bằng cụm từ chính xác: "Thưa thầy,"
+- Sau "Thưa thầy," thì hỏi thẳng vấn đề, không thêm xưng hô khác ở đầu câu
+- Câu hỏi phải GIẬT GÂN, GÂY CẤN, dễ viral trên TikTok, phù hợp làm HOOK đầu video
 - Có tính GÂY TRANH CÃI, RAGE BAIT - khiến người xem muốn bình luận ngay
 - Chủ đề: tâm linh, cuộc sống, mối quan hệ, công việc, tiền bạc, hạnh phúc, stress, lo âu, đạo đức...
-- Phong cách: thẳng thắn, có thể hơi cực đoan, đặt câu hỏi về những vấn đề nhạy cảm, controversial
-- Câu hỏi phải HÚT, khiến người xem phải dừng lại xem câu trả lời
+- Phong cách: thẳng thắn, có thể hơi cực đoan, đặt câu hỏi về những vấn đề nhạy cảm, controversial nhưng vẫn tự nhiên như người Việt nói chuyện
+- Câu hỏi phải HÚT, khiến người xem phải dừng lại xem câu trả lời, đủ ngắn để đọc nhanh trong 1–2 giây
 
 QUAN TRỌNG:
-- CHỈ 1 CÂU HỎI, không được dài dòng
+- CHỈ 1 CÂU HỎI, không được dài dòng, không được xuống dòng
 - Mỗi câu hỏi PHẢI KHÁC NHAU, không được trùng lặp
-- Câu hỏi phải tự nhiên, như một người thật đang hỏi
+- Câu hỏi phải tự nhiên, như một người thật đang hỏi thầy
 - Kết thúc bằng dấu chấm hỏi (?)
 - KHÔNG dùng gạch đầu dòng, chỉ trả về câu hỏi thuần túy
 
 VÍ DỤ CÂU HỎI TỐT (NGẮN, GIẬT GÂN):
-- "Thầy ơi, tại sao người tốt lại hay bị lợi dụng?"
-- "Con thấy mình thất bại quá, thầy có thể giúp con không?"
-- "Tại sao nhiều người giàu có nhưng vẫn không hạnh phúc?"
-- "Em luôn giúp đỡ người khác nhưng lại bị phản bội, em nên làm sao?"
-- "Thầy ơi, yêu bản thân có phải chỉ là đặc quyền của người có tiền không?"
-- "Tại sao người thành công thường nói 'theo đam mê' nhưng thực tế họ làm vì tiền?"
+- "Thưa thầy, tại sao người tốt lại toàn gặp khổ ạ?"
+- "Thưa thầy, người phản bội con có đáng được tha thứ không ạ?"
+- "Thưa thầy, ở đời sống thật lòng có phải lúc nào cũng thiệt không ạ?"
+- "Thưa thầy, con hiếu với cha mẹ mà cứ bị bất công, con phải làm sao ạ?"
+- "Thưa thầy, bị người thân nợ tiền rồi lờ đi, con đòi có mang tội tham không ạ?"
+- "Thưa thầy, con làm điều tốt mà toàn bị lợi dụng, con có nên dừng lại không ạ?"
 
 CHỈ TRẢ VỀ CÂU HỎI, KHÔNG CÓ GIẢI THÍCH HAY MỞ ĐẦU GÌ THÊM.`;
 

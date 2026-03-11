@@ -58,7 +58,20 @@ function loadEnv() {
 async function testFullFlow() {
   loadEnv();
 
+  const topic = process.argv.slice(2).join(" ").trim();
+  const targetDurationSeconds = Number(
+    process.env.TARGET_DURATION_SECONDS || "90"
+  );
+  const customQuestion = process.env.CUSTOM_QUESTION?.trim();
+
   console.log("🧪 Testing Full Flow từ câu hỏi của user ra video cuối\n");
+  if (topic) {
+    console.log(`🏷️ Topic override: ${topic}`);
+  }
+  if (customQuestion) {
+    console.log(`✍️ Custom question: ${customQuestion}`);
+  }
+  console.log(`🎯 Target duration: ~${targetDurationSeconds} seconds\n`);
 
   const videosDir = path.join(process.cwd(), "videos");
   await fs.mkdir(videosDir, { recursive: true });
@@ -86,12 +99,15 @@ async function testFullFlow() {
   try {
     // Step 1: Generate user question from OpenAI
     console.log(`❓ Step 1: Generating question from OpenAI...`);
-    const userQuestion = await generateQuestion();
+    const userQuestion =
+      customQuestion || (await generateQuestion({ topic }));
     console.log(`✅ Question generated: "${userQuestion}"\n`);
 
     // Step 2: Generate content from OpenAI
     console.log(`📝 Step 2: Generating content from OpenAI...`);
-    const content = await generateContent(userQuestion);
+    const content = await generateContent(userQuestion, {
+      targetDurationSeconds,
+    });
     console.log(`✅ Content generated: ${content.substring(0, 100)}...\n`);
 
     // Step 3: Generate question audio (Minimax TTS + swish)
@@ -259,4 +275,3 @@ async function testFullFlow() {
 }
 
 void testFullFlow();
-

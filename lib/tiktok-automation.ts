@@ -60,21 +60,47 @@ Luôn thêm dấu câu đầy đủ và chính xác để TTS đọc tự nhiên
 LƯU Ý: Sửa lỗi chính tả nếu có, nhưng KHÔNG thay đổi phong cách xưng hô, từ ngữ riêng. KHÔNG thêm/bớt ý mới, chỉ chỉnh dấu câu và lỗi chính tả.
 `.trim();
 
+type ContentGenerationOptions = {
+  targetDurationSeconds?: number;
+};
+
+type QuestionGenerationOptions = {
+  topic?: string;
+};
+
+function countWords(text: string): number {
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
+
 /**
  * Generate content từ OpenAI - thiền sư trả lời câu hỏi của user
- * Tối ưu cho TikTok short: câu trả lời ngắn gọn, tối đa 1 phút 30 giây (khoảng 225-270 từ)
+ * Tối ưu cho TikTok short: câu trả lời khoảng 1 phút 30 giây
  */
-export async function generateContent(userQuestion: string): Promise<string> {
+export async function generateContent(
+  userQuestion: string,
+  options: ContentGenerationOptions = {}
+): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY environment variable");
   }
 
+  const targetDurationSeconds = options.targetDurationSeconds ?? 90;
+  const targetWordRange =
+    targetDurationSeconds >= 90 ? "300-340" : "260-320";
+  const targetSentenceRange =
+    targetDurationSeconds >= 90 ? "12-18" : "10-15";
+  const minimumWordCount = targetDurationSeconds >= 90 ? 300 : 260;
+  const maximumWordCount = targetDurationSeconds >= 90 ? 340 : 320;
+
   // System prompt riêng cho TikTok - yêu cầu đủ dài, khoảng 1 phút 30 giây
   const TIKTOK_SYSTEM_PROMPT = `${SYSTEM_PROMPT}
 
 QUAN TRỌNG CHO TIKTOK SHORT:
-- Câu trả lời PHẢI ĐỦ DÀI, khoảng 1 phút 30 giây khi đọc (khoảng 250-300 từ, tương đương 700-900 tokens).
+- Câu trả lời PHẢI ĐỦ DÀI, khoảng ${targetDurationSeconds} giây khi đọc.
 - KHÔNG được quá ngắn. Phải đảm bảo đủ nội dung để đọc trong 1 phút 30 giây.
 - Giữ chất lượng: vẫn sâu sắc, từ bi, nhưng đầy đủ và có chiều sâu.
 - Tối ưu cho TTS tiếng Việt: đọc chậm rãi, tự nhiên, có nhịp thở và khoảng lặng rõ ràng.
@@ -85,54 +111,85 @@ CẤU TRÚC CÂU TRẢ LỜI:
 - Phần mở: Bỏ qua hoặc chỉ 1 câu ngắn gọn nếu cần, KHÔNG lặp lại câu hỏi.
 - Phần thân: 8-12 câu chia sẻ suy nghĩ, ẩn dụ, ví dụ cụ thể, giải thích sâu hơn - đây là phần chính.
 - Phần kết: 1-2 câu hỏi gợi mở hoặc lời nhắn nhẹ nhàng.
-- Tổng cộng: 10-15 câu, khoảng 250-300 từ.
-- Đảm bảo câu trả lời ĐỦ DÀI để đọc trong 1 phút 30 giây, không được ngắn hơn.
+- Tổng cộng: ${targetSentenceRange} câu, khoảng ${targetWordRange} từ.
+- Đảm bảo câu trả lời ĐỦ DÀI để đọc trong khoảng ${targetDurationSeconds} giây, không được ngắn hơn rõ rệt.
 - Tập trung vào phần thân, không lãng phí thời gian ở phần mở đầu.`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o", // Sử dụng gpt-4o hoặc gpt-3.5-turbo
-      messages: [
-        { role: "system", content: TIKTOK_SYSTEM_PROMPT },
-        { role: "user", content: userQuestion },
-      ],
-      max_completion_tokens: 900, // Giới hạn tối đa 900 tokens (~300 từ, ~1 phút 30 giây) để đảm bảo câu trả lời đủ dài
-      temperature: 0.7,
-      stream: false, // Không cần streaming cho automation
-    }),
-  });
+  let lastContent = "";
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI API error: ${errorText}`);
+  let previousWordCount = 0;
+
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    const lengthReminder =
+      attempt === 1
+        ? `BẮT BUỘC nằm trong khoảng ${minimumWordCount}-${maximumWordCount} từ.`
+        : previousWordCount < minimumWordCount
+          ? `LẦN TRƯỚC QUÁ NGẮN (${previousWordCount} từ). LẦN NÀY BẮT BUỘC nằm trong khoảng ${minimumWordCount}-${maximumWordCount} từ, thêm chiều sâu, ví dụ và hình ảnh ẩn dụ để kéo đủ nhịp đọc.`
+          : `LẦN TRƯỚC QUÁ DÀI (${previousWordCount} từ). LẦN NÀY BẮT BUỘC rút gọn còn ${minimumWordCount}-${maximumWordCount} từ, vẫn giữ đủ mở-thân-kết và nhịp đọc tự nhiên.`;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: TIKTOK_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: `${userQuestion}\n\nYêu cầu độ dài bổ sung: ${lengthReminder}`,
+          },
+        ],
+        max_completion_tokens: 1400,
+        temperature: 0.7,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI API error: ${errorText}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (!content) {
+      throw new Error("No content generated from OpenAI");
+    }
+
+    lastContent = content;
+    previousWordCount = countWords(content);
+    if (
+      previousWordCount >= minimumWordCount &&
+      previousWordCount <= maximumWordCount
+    ) {
+      return content;
+    }
   }
 
-  const data = (await response.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error("No content generated from OpenAI");
-  }
-
-  return content;
+  return lastContent;
 }
 
 /**
  * Generate question từ OpenAI - tạo câu hỏi viral, gây tranh cãi, rage bait
  * Đảm bảo mỗi lần gen ra câu hỏi khác nhau, tránh trùng lặp
  */
-export async function generateQuestion(): Promise<string> {
+export async function generateQuestion(
+  options: QuestionGenerationOptions = {}
+): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY environment variable");
   }
+
+  const topicInstruction = options.topic
+    ? `- Chủ đề bắt buộc: ${options.topic}. Câu hỏi phải xoáy thẳng vào chủ đề này, nghe thật gắt và dễ kích thích bình luận.`
+    : "";
 
   // System prompt để gen câu hỏi viral, gây tranh cãi
   const QUESTION_GENERATION_PROMPT = `Bạn là một người dùng mạng xã hội đang đặt câu hỏi cho một thầy/người hướng dẫn tâm linh.
@@ -146,6 +203,7 @@ Tạo CHỈ MỘT CÂU HỎI DUY NHẤT, NGẮN GỌN (tối đa 15 từ, khoả
 - Chủ đề: tâm linh, cuộc sống, mối quan hệ, công việc, tiền bạc, hạnh phúc, stress, lo âu, đạo đức...
 - Phong cách: thẳng thắn, có thể hơi cực đoan, đặt câu hỏi về những vấn đề nhạy cảm, controversial nhưng vẫn tự nhiên như người Việt nói chuyện
 - Câu hỏi phải HÚT, khiến người xem phải dừng lại xem câu trả lời, đủ ngắn để đọc nhanh trong 1–2 giây
+${topicInstruction}
 
 QUAN TRỌNG:
 - CHỈ 1 CÂU HỎI, không được dài dòng, không được xuống dòng
@@ -167,7 +225,7 @@ CHỈ TRẢ VỀ CÂU HỎI, KHÔNG CÓ GIẢI THÍCH HAY MỞ ĐẦU GÌ THÊM.
   // Thêm timestamp và random seed để đảm bảo tính đa dạng
   const timestamp = Date.now();
   const randomSeed = Math.floor(Math.random() * 10000);
-  const userPrompt = `Hãy tạo một câu hỏi mới, độc đáo, chưa từng thấy trước đây. 
+  const userPrompt = `Hãy tạo một câu hỏi mới, độc đáo, chưa từng thấy trước đây.
 Timestamp: ${timestamp}
 Random seed: ${randomSeed}
 Đảm bảo câu hỏi này hoàn toàn khác với mọi câu hỏi đã tạo trước đó.`;
@@ -248,7 +306,7 @@ export async function generateQuestionAudio(question: string): Promise<Buffer> {
       language_boost: "Vietnamese",
       voice_setting: {
         voice_id: voiceId,
-        speed: 0.4, // Tốc độ: 0.5 - 2.0 (giảm xuống 0.4 để nói chậm hơn, tự nhiên hơn)
+        speed: 0.5, // Tăng nhẹ để kéo tổng thời lượng video về gần 1 phút 30 giây
         vol: 1, // Volume: 0.5 - 2.0
         pitch: -1, // Cao độ: -12 đến +12 semitone (giảm xuống -1 để giọng trầm hơn, truyền cảm hơn)
         emotion: "sad", // Emotion: "neutral", "happy", "sad", "angry", "fearful" - dùng "sad" để nhẹ nhàng, tĩnh lặng, truyền cảm hơn
